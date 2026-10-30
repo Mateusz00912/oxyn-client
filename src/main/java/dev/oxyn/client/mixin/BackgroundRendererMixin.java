@@ -3,6 +3,7 @@ package dev.oxyn.client.mixin;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.oxyn.client.module.Module;
 import dev.oxyn.client.module.ModuleManager;
+import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.Camera;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +18,7 @@ public class BackgroundRendererMixin {
     private static void oxyn$fog(Camera camera, BackgroundRenderer.FogType fogType, float viewDistance,
                                  boolean thickFog, float tickDelta, CallbackInfo ci) {
         if (fogType != BackgroundRenderer.FogType.FOG_TERRAIN || !ModuleManager.on("fog")) return;
-        if (camera.getSubmersionType() != net.minecraft.client.render.CameraSubmersionType.NONE) return;
+        if (camera.getSubmersionType() != CameraSubmersionType.NONE) return;
         Module m = ModuleManager.get("fog");
         float density = (float) m.num("Gęstość");
         float end = Math.max(16f, viewDistance * density);
