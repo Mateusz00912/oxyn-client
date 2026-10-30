@@ -31,6 +31,7 @@ public class OxynTitleScreen extends Screen {
     private final List<Btn> buttons = new ArrayList<>();
     private int vw, vh;
     private float scale = 1f;
+    private int mid;
 
     public OxynTitleScreen() {
         super(Text.literal("Oxyn Client"));
@@ -43,14 +44,15 @@ public class OxynTitleScreen extends Screen {
 
     @Override
     protected void init() {
-        scale = Math.min(1f, height / 390f);
+        scale = Math.min(1f, height / 380f);
         vw = (int) (width / scale);
         vh = (int) (height / scale);
+        mid = vh / 2 - 43; // cała zawartość mieści się w ~350 jednostkach i jest wyśrodkowana
         buttons.clear();
         MinecraftClient mc = MinecraftClient.getInstance();
         int cx = vw / 2;
         int bw = 250, bh = 30, gap = 6;
-        int y = vh / 2 - 26;
+        int y = mid - 26;
         int x = cx - bw / 2;
 
         buttons.add(new Btn("Graj", "play", null, x, y, bw, bh, () -> mc.setScreen(new MultiplayerScreen(this))));
@@ -101,12 +103,12 @@ public class OxynTitleScreen extends Screen {
         int cx = vw / 2;
 
         // Logo
-        logo(ctx, tr, cx, vh / 2 - 118);
+        logo(ctx, tr, cx, mid - 118);
 
         // Lewy górny badge
         Glass.panel(ctx, 8, 8, 150, 30, 8);
         ctx.drawText(tr, "Oxyn Client", 16, 14, 0xFFFFFFFF, true);
-        ctx.drawText(tr, " v1.0.0", 16 + tr.getWidth("Oxyn Client"), 14, Glass.ACCENT, true);
+        ctx.drawText(tr, " v1.0.0", 16 + tr.getWidth("Oxyn Client"), 14, Glass.accent(), true);
         ctx.drawText(tr, "Wersja Minecraft: 1.21.1", 16, 25, 0xFFA8C4E0, false);
 
         // Prawy górny: lista funkcji
@@ -115,34 +117,34 @@ public class OxynTitleScreen extends Screen {
             int w = tr.getWidth(feats[i]);
             int fy = 10 + i * 17;
             ctx.drawText(tr, feats[i], vw - w - 22, fy, 0xFFDDEBFA, true);
-            ctx.fill(vw - 14, fy + 2, vw - 10, fy + 6, Glass.ACCENT);
+            ctx.fill(vw - 14, fy + 2, vw - 10, fy + 6, Glass.accent());
         }
 
         // Dolne narożniki
-        ctx.drawText(tr, "Oxyn Client", 12, vh - 34, Glass.ACCENT, true);
-        ctx.fill(12, vh - 22, 70, vh - 21, Glass.ACCENT);
+        ctx.drawText(tr, "Oxyn Client", 12, vh - 34, Glass.accent(), true);
+        ctx.fill(12, vh - 22, 70, vh - 21, Glass.accent());
         ctx.drawText(tr, "Build 1.0.0", 12, vh - 16, 0xFF8FA3BA, false);
         String l1 = "Zaprojektowany dla graczy,", l2 = "przez graczy.";
         ctx.drawText(tr, l1, vw - tr.getWidth(l1) - 12, vh - 34, 0xFFDDEBFA, true);
         ctx.drawText(tr, l2, vw - tr.getWidth(l2) - 12, vh - 24, 0xFFDDEBFA, true);
-        ctx.drawText(tr, "Oxyn.", vw - tr.getWidth("Oxyn.") - 12, vh - 13, Glass.ACCENT, true);
+        ctx.drawText(tr, "Oxyn.", vw - tr.getWidth("Oxyn.") - 12, vh - 13, Glass.accent(), true);
 
         // Przyciski
         String tooltip = null;
         for (Btn b : buttons) {
             boolean hov = b.hit(mx, my);
             boolean first = b == buttons.get(0);
-            if (hov || first) Glass.panelAccent(ctx, b.x, b.y, b.w, b.h, 7, hov ? Glass.ACCENT_LIGHT : Glass.ACCENT);
+            if (hov || first) Glass.panelAccent(ctx, b.x, b.y, b.w, b.h, 7, hov ? Glass.accentLight() : Glass.accent());
             else Glass.panel(ctx, b.x, b.y, b.w, b.h, 7);
 
             int iy = b.y + (b.h - 12) / 2;
             if (b.icon.equals("play")) {
                 for (int c = 0; c < 10; c++) {
                     int hh = 14 - c * 14 / 10;
-                    ctx.fill(b.x + 14 + c, b.y + b.h / 2 - hh / 2, b.x + 15 + c, b.y + b.h / 2 + hh / 2 + 1, Glass.ACCENT_LIGHT);
+                    ctx.fill(b.x + 14 + c, b.y + b.h / 2 - hh / 2, b.x + 15 + c, b.y + b.h / 2 + hh / 2 + 1, Glass.accentLight());
                 }
             } else if (!b.label.isEmpty()) {
-                ctx.drawText(tr, b.icon, b.x + 15, iy + 2, Glass.ACCENT_LIGHT, true);
+                ctx.drawText(tr, b.icon, b.x + 15, iy + 2, Glass.accentLight(), true);
             } else {
                 ctx.drawText(tr, b.icon, b.x + (b.w - tr.getWidth(b.icon)) / 2, b.y + (b.h - 8) / 2, 0xFFFFFFFF, true);
             }
@@ -156,7 +158,7 @@ public class OxynTitleScreen extends Screen {
                 int bw = tr.getWidth(b.badge) + 12;
                 int bx = b.x + b.w - bw - 8;
                 if (b.badge.equals(">>")) {
-                    ctx.drawText(tr, b.badge, b.x + b.w - 20, b.y + (b.h - 8) / 2, Glass.ACCENT_LIGHT, true);
+                    ctx.drawText(tr, b.badge, b.x + b.w - 20, b.y + (b.h - 8) / 2, Glass.accentLight(), true);
                 } else {
                     Glass.roundRect(ctx, bx, b.y + 7, bw, 16, 5, 0xAA1E5FB4);
                     ctx.drawText(tr, b.badge, bx + 6, b.y + 11, 0xFFFFFFFF, false);
@@ -192,9 +194,14 @@ public class OxynTitleScreen extends Screen {
         for (int i = 0; i < word.length(); i++) {
             String ch = word.substring(i, i + 1);
             ctx.getMatrices().push();
+            ctx.getMatrices().translate(x + 3, y + 3, 0);
+            ctx.getMatrices().scale(s, s, 1f);
+            ctx.drawText(tr, ch, 0, 0, 0xFF1B4F9C, false);
+            ctx.getMatrices().pop();
+            ctx.getMatrices().push();
             ctx.getMatrices().translate(x, y, 0);
             ctx.getMatrices().scale(s, s, 1f);
-            ctx.drawText(tr, ch, 0, 0, cols[i], true);
+            ctx.drawText(tr, ch, 0, 0, cols[i], false);
             ctx.getMatrices().pop();
             x += tr.getWidth(ch) * s + 4;
         }
@@ -204,12 +211,12 @@ public class OxynTitleScreen extends Screen {
         ctx.getMatrices().push();
         ctx.getMatrices().translate(cx - tr.getWidth(c) * s2 / 2f, y + 56, 0);
         ctx.getMatrices().scale(s2, s2, 1f);
-        ctx.drawText(tr, c, 0, 0, Glass.ACCENT, true);
+        ctx.drawText(tr, c, 0, 0, Glass.accent(), true);
         ctx.getMatrices().pop();
         // tagline
         Text tag = Text.literal("More than just a client.").styled(st -> st.withItalic(true));
-        ctx.drawText(tr, tag, cx + 62, y + 12, 0xFFDDEBFA, true);
-        ctx.drawText(tr, Text.literal("Oxyn").styled(st -> st.withItalic(true)), cx + 112, y + 24, Glass.ACCENT, true);
+        ctx.drawText(tr, tag, cx + 92, y + 12, 0xFFDDEBFA, true);
+        ctx.drawText(tr, Text.literal("Oxyn").styled(st -> st.withItalic(true)), cx + 142, y + 24, Glass.accent(), true);
     }
 
     @Override

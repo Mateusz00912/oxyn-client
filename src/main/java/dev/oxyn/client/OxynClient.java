@@ -1,5 +1,6 @@
 package dev.oxyn.client;
 
+import dev.oxyn.client.feature.KillFx;
 import dev.oxyn.client.feature.Spotify;
 import dev.oxyn.client.feature.Targeting;
 import dev.oxyn.client.gui.OxynMenuScreen;
@@ -12,6 +13,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.minecraft.util.ActionResult;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -41,6 +44,10 @@ public class OxynClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(OxynHud::render);
         WorldRenderEvents.AFTER_ENTITIES.register(WorldFx::renderTags);
         WorldRenderEvents.LAST.register(WorldFx::renderShapes);
+        AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
+            if (world.isClient()) KillFx.onAttack(entity);
+            return ActionResult.PASS;
+        });
         ClientTickEvents.END_CLIENT_TICK.register(OxynClient::tick);
     }
 
@@ -55,6 +62,7 @@ public class OxynClient implements ClientModInitializer {
         }
 
         Targeting.tick(mc);
+        KillFx.tick(mc);
         WorldFx.tick(mc);
 
         ClientPlayerEntity p = mc.player;

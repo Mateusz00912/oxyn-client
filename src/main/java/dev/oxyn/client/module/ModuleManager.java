@@ -24,13 +24,56 @@ public final class ModuleManager {
     public static String discordUrl = "https://discord.gg/";
     public static String storeUrl = "https://modrinth.com/mods";
 
+    /** Układ elementów HUD: id -> {przesunięcie X, przesunięcie Y, skala}. */
+    private static final Map<String, double[]> HUD = new LinkedHashMap<>();
+
     private ModuleManager() {}
+
+    private static double[] defaults(String id) {
+        return switch (id) {
+            case "topbar", "lyric" -> new double[]{0, 24, 1};
+            default -> new double[]{0, 0, 1};
+        };
+    }
+
+    public static double[] hud(String id) {
+        return HUD.computeIfAbsent(id, ModuleManager::defaults);
+    }
+
+    public static void resetHud(String id) {
+        HUD.put(id, defaults(id));
+    }
+
+    public static void resetHudAll() {
+        for (String k : new ArrayList<>(HUD.keySet())) HUD.put(k, defaults(k));
+    }
+
+    /** Gotowe style szkła: {barwa, nasycenie, jasność, krycie, obwódka, połysk, zaokrąglenie, akcent}. */
+    public static void preset(String name) {
+        double[] v = switch (name) {
+            case "Ciemne" -> new double[]{222, 0.6, 0.14, 0.82, 0.35, 0.10, 1.0, 208};
+            case "Neon" -> new double[]{265, 0.8, 0.22, 0.65, 0.95, 0.16, 1.1, 290};
+            case "Kryształ" -> new double[]{200, 0.12, 0.92, 0.20, 0.85, 0.38, 1.5, 195};
+            default -> new double[]{212, 0.5, 0.5, 0.5, 0.6, 0.22, 1.1, 208}; // Mleczne
+        };
+        Module t = MODULES.get("theme");
+        for (int i = 0; i < v.length; i++) t.settings.get(i).set(v[i]);
+        save();
+    }
 
     public static void init() {
         // HUD
         add(new Module("hudlayout", "Układ HUD", "Skala HUD (1 = auto) i wysokość panelu górnego", Category.HUD, true)
-                .slider("Skala", 0.5, 1.5, 1.0)
-                .slider("Panel górny Y", 0, 80, 24));
+                .slider("Skala", 0.5, 1.5, 1.0));
+        add(new Module("theme", "Wygląd", "Kolory i szkło", null, true)
+                .slider("Barwa szkła", 0, 360, 212)
+                .slider("Nasycenie", 0, 1, 0.5)
+                .slider("Jasność", 0, 1, 0.5)
+                .slider("Krycie szkła", 0.1, 1, 0.5)
+                .slider("Obwódka", 0, 1, 0.6)
+                .slider("Połysk", 0, 1, 0.22)
+                .slider("Zaokrąglenie", 0.3, 1.6, 1.1)
+                .slider("Akcent (barwa)", 0, 360, 208));
         add(new Module("modlist", "Lista modułów", "Panel z aktywnymi modułami", Category.HUD, true));
         add(new Module("glasspanel", "Panel górny", "Liquid glass panel: nazwa, FPS, serwer", Category.HUD, true));
         add(new Module("cps", "CPS", "Kliknięcia na sekundę", Category.HUD, true));
@@ -62,6 +105,11 @@ public final class ModuleManager {
                 .slider("Zasięg (bloki)", 8, 64, 40));
         add(new Module("hptags", "HP graczy", "HP nad głowami graczy", Category.VISUAL, true)
                 .slider("Zasięg (bloki)", 8, 96, 48));
+        add(new Module("killfx", "Animacja zabicia", "Fale, iskry i baner po zabiciu", Category.VISUAL, true)
+                .toggle("Fale i iskry", true)
+                .toggle("Baner", true)
+                .toggle("Dźwięk", true)
+                .slider("Czas banera (s)", 1, 5, 2.5));
         add(new Module("ownnametag", "Nick OXYN", "Napis OXYN (nick) nad Twoją postacią", Category.VISUAL, true));
         add(new Module("fog", "Mgła", "Własny kolor i gęstość mgły", Category.VISUAL, false)
                 .slider("Gęstość", 0.1, 1.0, 0.55)
@@ -116,6 +164,15 @@ public final class ModuleManager {
                 mods.add(m.id, o);
             }
             root.add("modules", mods);
+            JsonObject hud = new JsonObject();
+            for (Map.Entry<String, double[]> e : HUD.entrySet()) {
+                JsonObject o = new JsonObject();
+                o.addProperty("dx", e.getValue()[0]);
+                o.addProperty("dy", e.getValue()[1]);
+                o.addProperty("scale", e.getValue()[2]);
+                hud.add(e.getKey(), o);
+            }
+            root.add("hud", hud);
             try (Writer w = Files.newBufferedWriter(file())) {
                 GSON.toJson(root, w);
             }
@@ -135,6 +192,16 @@ public final class ModuleManager {
             if (root.has("customTitle")) customTitle = root.get("customTitle").getAsBoolean();
             if (root.has("discordUrl")) discordUrl = root.get("discordUrl").getAsString();
             if (root.has("storeUrl")) storeUrl = root.get("storeUrl").getAsString();
+            if (root.has("hud")) {
+                JsonObject h = root.getAsJsonObject("hud");
+                for (String k : h.keySet()) {
+                    JsonObject o = h.getAsJsonObject(k);
+                    double[] st = hud(k);
+                    if (o.has("dx")) st[0] = o.get("dx").getAsDouble();
+                    if (o.has("dy")) st[1] = o.get("dy").getAsDouble();
+                    if (o.has("scale")) st[2] = Math.max(0.4, Math.min(3.0, o.get("scale").getAsDouble()));
+                }
+            }
             if (!root.has("modules")) return;
             JsonObject mods = root.getAsJsonObject("modules");
             for (Module m : MODULES.values()) {

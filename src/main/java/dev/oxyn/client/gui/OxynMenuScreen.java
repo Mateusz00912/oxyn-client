@@ -56,9 +56,10 @@ public class OxynMenuScreen extends Screen {
 
     private static String[] tabNames() {
         Category[] c = Category.values();
-        String[] n = new String[c.length + 1];
+        String[] n = new String[c.length + 2];
         for (int i = 0; i < c.length; i++) n[i] = c[i].label;
-        n[c.length] = "Ogólne";
+        n[c.length] = "Wygląd";
+        n[c.length + 1] = "Ogólne";
         return n;
     }
 
@@ -72,7 +73,7 @@ public class OxynMenuScreen extends Screen {
         Glass.panel(ctx, x0, y0, W, H, 12);
 
         // Pasek boczny
-        ctx.drawText(tr, "OXYN", x0 + 14, y0 + 14, Glass.ACCENT_LIGHT, true);
+        ctx.drawText(tr, "OXYN", x0 + 14, y0 + 14, Glass.accentLight(), true);
         ctx.drawText(tr, " CLIENT", x0 + 14 + tr.getWidth("OXYN"), y0 + 14, 0xFFFFFFFF, true);
         ctx.drawText(tr, "Right Shift - zamknij", x0 + 14, y0 + H - 18, 0xFF7C93AB, false);
         String[] names = tabNames();
@@ -80,7 +81,7 @@ public class OxynMenuScreen extends Screen {
             final int idx = i;
             int ty = y0 + 40 + i * 28;
             boolean sel = tab == i;
-            if (sel) Glass.panelAccent(ctx, x0 + 8, ty, SIDE - 8, 22, 6, Glass.ACCENT);
+            if (sel) Glass.panelAccent(ctx, x0 + 8, ty, SIDE - 8, 22, 6, Glass.accent());
             else Glass.roundRect(ctx, x0 + 8, ty, SIDE - 8, 22, 6, 0x22FFFFFF);
             ctx.drawText(tr, names[i], x0 + 18, ty + 7, 0xFFFFFFFF, true);
             hits.add(new Hit(x0 + 8, ty, SIDE - 8, 22, () -> {
@@ -104,6 +105,8 @@ public class OxynMenuScreen extends Screen {
             for (Module m : ModuleManager.inCategory(Category.values()[tab])) {
                 y = moduleRow(ctx, tr, m, cx, y, cw, areaY, areaH);
             }
+        } else if (tab == Category.values().length) {
+            y = appearanceRows(ctx, tr, cx, y, cw, areaY, areaH);
         } else {
             y = generalRows(ctx, tr, cx, y, cw, areaY, areaH);
         }
@@ -165,7 +168,7 @@ public class OxynMenuScreen extends Screen {
             ctx.fill(tx, y + 9, tx + tw, y + 11, 0x55FFFFFF);
             double f = (s.value - s.min) / (s.max - s.min);
             int kx = tx + (int) (tw * f);
-            ctx.fill(tx, y + 9, kx, y + 11, Glass.ACCENT);
+            ctx.fill(tx, y + 9, kx, y + 11, Glass.accent());
             Glass.roundRect(ctx, kx - 3, y + 5, 7, 10, 3, 0xFFFFFFFF);
             String val = Math.abs(s.value) >= 10 ? String.valueOf(Math.round(s.value)) : String.format("%.2f", s.value);
             ctx.drawText(tr, val, tx + tw + 8, y + 6, 0xFFFFFFFF, false);
@@ -175,6 +178,58 @@ public class OxynMenuScreen extends Screen {
     }
 
     private final java.util.Map<Setting, int[]> sliderGeom = new java.util.HashMap<>();
+
+    private void button(DrawContext ctx, TextRenderer tr, int x, int y, int w, int h, String label, Runnable click, int areaY, int areaH) {
+        Glass.panel(ctx, x, y, w, h, 6);
+        ctx.drawText(tr, label, x + (w - tr.getWidth(label)) / 2, y + (h - 8) / 2 + 1, 0xFFFFFFFF, true);
+        addHit(new Hit(x, y, w, h, click, null), areaY, areaH);
+    }
+
+    private int appearanceRows(DrawContext ctx, TextRenderer tr, int x, int y, int w, int areaY, int areaH) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        // gotowe style
+        if (visible(y, 14, areaY, areaH)) ctx.drawText(tr, "Gotowe style szkła", x + 2, y + 2, 0xFFB8D4F0, false);
+        y += 14;
+        String[] presets = {"Mleczne", "Ciemne", "Neon", "Kryształ"};
+        int bw = (w - 3 * 6) / presets.length;
+        if (visible(y, 24, areaY, areaH)) {
+            for (int i = 0; i < presets.length; i++) {
+                final String pr = presets[i];
+                button(ctx, tr, x + i * (bw + 6), y, bw, 22, pr, () -> ModuleManager.preset(pr), areaY, areaH);
+            }
+        }
+        y += 28;
+
+        // suwaki motywu
+        if (visible(y, 14, areaY, areaH)) ctx.drawText(tr, "Kolory i szkło (zmiany widać od razu)", x + 2, y + 2, 0xFFB8D4F0, false);
+        y += 14;
+        for (Setting s : ModuleManager.get("theme").settings) {
+            if (visible(y, 20, areaY, areaH)) settingRow(ctx, tr, s, x + 4, y, w - 4, areaY, areaH);
+            y += 20;
+        }
+        y += 6;
+
+        // rozmiar i pozycje
+        if (visible(y, 14, areaY, areaH)) ctx.drawText(tr, "Rozmiar i miejsce na ekranie", x + 2, y + 2, 0xFFB8D4F0, false);
+        y += 14;
+        Setting scale = ModuleManager.get("hudlayout").setting("Skala");
+        if (visible(y, 20, areaY, areaH)) settingRow(ctx, tr, scale, x + 4, y, w - 4, areaY, areaH);
+        y += 24;
+        if (visible(y, 24, areaY, areaH)) {
+            if (mc.player != null) {
+                button(ctx, tr, x, y, w, 22, "Edytor HUD - przeciągaj elementy, kółko = rozmiar",
+                        () -> mc.setScreen(new HudEditorScreen(this)), areaY, areaH);
+            } else {
+                ctx.drawText(tr, "Edytor HUD: wejdź do świata (Prawy Shift w grze).", x + 4, y + 7, 0xFFFFC66B, false);
+            }
+        }
+        y += 28;
+        if (visible(y, 24, areaY, areaH)) {
+            button(ctx, tr, x, y, w, 22, "Resetuj układ HUD", ModuleManager::resetHudAll, areaY, areaH);
+        }
+        y += 28;
+        return y;
+    }
 
     private int generalRows(DrawContext ctx, TextRenderer tr, int x, int y, int w, int areaY, int areaH) {
         if (visible(y, 28, areaY, areaH)) {
@@ -187,14 +242,14 @@ public class OxynMenuScreen extends Screen {
         y += 28;
         if (visible(y, 40, areaY, areaH)) {
             ctx.drawText(tr, "Linki (Discord / Sklep) edytujesz w pliku:", x + 4, y + 4, 0xFFB8D4F0, false);
-            ctx.drawText(tr, "config/oxyn.json", x + 4, y + 16, Glass.ACCENT_LIGHT, false);
+            ctx.drawText(tr, "config/oxyn.json", x + 4, y + 16, Glass.accentLight(), false);
         }
         y += 40;
         return y;
     }
 
     private void toggleSwitch(DrawContext ctx, int x, int y, boolean on) {
-        Glass.roundRect(ctx, x, y, 26, 12, 6, on ? Glass.ACCENT : 0xFF3A4660);
+        Glass.roundRect(ctx, x, y, 26, 12, 6, on ? Glass.accent() : 0xFF3A4660);
         Glass.roundRect(ctx, x + (on ? 15 : 1), y + 1, 10, 10, 5, 0xFFFFFFFF);
     }
 

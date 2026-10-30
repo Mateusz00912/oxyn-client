@@ -1,6 +1,7 @@
 package dev.oxyn.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.oxyn.client.feature.KillFx;
 import dev.oxyn.client.feature.Targeting;
 import dev.oxyn.client.module.Module;
 import dev.oxyn.client.module.ModuleManager;
@@ -100,7 +101,8 @@ public final class WorldFx {
         boolean trail = ModuleManager.on("trail") && TRAIL.size() > 1;
         boolean aura = ModuleManager.on("aura");
         boolean tring = ModuleManager.on("targetring") && Targeting.target != null;
-        if (!trail && !aura && !tring) return;
+        boolean kills = !KillFx.BURSTS.isEmpty();
+        if (!trail && !aura && !tring && !kills) return;
 
         Vec3d cam = ctx.camera().getPos();
         Matrix4f mat = ctx.matrixStack().peek().getPositionMatrix();
@@ -116,6 +118,7 @@ public final class WorldFx {
         if (trail) drawTrail(b, mat, cam, self, t, p);
         if (aura) drawAura(b, mat, self.subtract(cam), t);
         if (tring) drawTargetRing(b, mat, cam, Targeting.target, t, td);
+        if (kills) drawKills(b, mat, cam);
 
         if (verts == 0) return;
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
@@ -144,7 +147,7 @@ public final class WorldFx {
             double f = (i + 1) / (double) (n - 1);
             int alpha = (int) (190 * f * f + 20 * f);
             int rgb = rainbow ? (java.awt.Color.HSBtoRGB((float) ((t * 0.25 + f * 0.6) % 1.0), 0.75f, 1f) & 0xFFFFFF)
-                    : lerpRgb(0x2B5BFF, 0x8FEBFF, f);
+                    : lerpRgb(Glass.accent() & 0xFFFFFF, Glass.accentLight() & 0xFFFFFF, f);
             int col = Glass.argb(alpha, rgb);
             double hw = size * (0.35 + 0.65 * f);
             double ax = a.x - cam.x, ay = a.y - cam.y + 0.9, az = a.z - cam.z;
@@ -165,13 +168,32 @@ public final class WorldFx {
         double r = mod.num("Promień");
         double sp = mod.num("Prędkość");
         Vec3d base = c.add(0, 0.03, 0);
-        ring(b, m, base, r, 0.07, Glass.argb(150, 0x3DA5FF), 0, Math.PI * 2);
-        ring(b, m, base.add(0, 0.01, 0), r + 0.12, 0.10, Glass.argb(230, 0x9FE3FF), t * sp * 3, 1.7);
-        ring(b, m, base.add(0, 0.01, 0), r + 0.12, 0.10, Glass.argb(230, 0x9FE3FF), t * sp * 3 + Math.PI, 1.7);
+        ring(b, m, base, r, 0.07, Glass.argb(150, Glass.accent() & 0xFFFFFF), 0, Math.PI * 2);
+        ring(b, m, base.add(0, 0.01, 0), r + 0.12, 0.10, Glass.argb(230, Glass.accentLight() & 0xFFFFFF), t * sp * 3, 1.7);
+        ring(b, m, base.add(0, 0.01, 0), r + 0.12, 0.10, Glass.argb(230, Glass.accentLight() & 0xFFFFFF), t * sp * 3 + Math.PI, 1.7);
         for (int k = 0; k < 3; k++) {
             double f = (t * sp * 0.45 + k / 3.0) % 1.0;
             double rr = r * (0.8 + 0.25 * Math.sin(f * Math.PI));
-            ring(b, m, base.add(0, f * 1.9, 0), rr, 0.045, Glass.argb((int) (170 * (1 - f)), 0x6CC3FF), t * sp, Math.PI * 2);
+            ring(b, m, base.add(0, f * 1.9, 0), rr, 0.045, Glass.argb((int) (170 * (1 - f)), Glass.accent() & 0xFFFFFF), t * sp, Math.PI * 2);
+        }
+    }
+
+    private static void drawKills(BufferBuilder b, Matrix4f m, Vec3d cam) {
+        long now = System.currentTimeMillis();
+        int acc = Glass.accent() & 0xFFFFFF;
+        int accL = Glass.accentLight() & 0xFFFFFF;
+        for (KillFx.Burst k : KillFx.BURSTS) {
+            double a = (now - k.start) / 1000.0;
+            if (a < 0 || a > 1.5) continue;
+            double f = a / 1.5;
+            int alpha = (int) (230 * (1 - f));
+            Vec3d c = k.pos.subtract(cam);
+            ring(b, m, c.add(0, 0.06, 0), 0.4 + f * 4.2, 0.05 + 0.22 * (1 - f), Glass.argb(alpha, 0xFFFFFF), 0, Math.PI * 2);
+            ring(b, m, c.add(0, 0.07, 0), 0.2 + f * 2.8, 0.14, Glass.argb(alpha, acc), 0, Math.PI * 2);
+            ring(b, m, c.add(0, f * 2.4, 0), 1.1 * (1 - f * 0.6), 0.06, Glass.argb(alpha, accL), a * 4, Math.PI * 2);
+            for (int i = 0; i < 3; i++) {
+                ring(b, m, c.add(0, 0.09, 0), 1.0 + f * 2.2, 0.13, Glass.argb(alpha, accL), a * 7 + i * Math.PI * 2 / 3, 1.0);
+            }
         }
     }
 
@@ -211,7 +233,7 @@ public final class WorldFx {
 
             if (pl == mc.player) {
                 if (own && !firstPerson) {
-                    Text label = Text.literal("OXYN ").styled(s -> s.withColor(0x3DA5FF).withBold(true))
+                    Text label = Text.literal("OXYN ").styled(s -> s.withColor(Glass.accent() & 0xFFFFFF).withBold(true))
                             .append(Text.literal(pl.getName().getString()).styled(s -> s.withColor(0xFFFFFF).withBold(false)));
                     tag(mc, ctx, label, x - cam.x, y - cam.y + pl.getHeight() + 0.5, z - cam.z, scale);
                 }
