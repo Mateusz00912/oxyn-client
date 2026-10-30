@@ -28,6 +28,10 @@ public final class ModuleManager {
 
     public static void init() {
         // HUD
+        add(new Module("hudlayout", "Układ HUD", "Skala HUD (1 = auto) i wysokość panelu górnego", Category.HUD, true)
+                .slider("Skala", 0.5, 1.5, 1.0)
+                .slider("Panel górny Y", 0, 80, 24));
+        add(new Module("modlist", "Lista modułów", "Panel z aktywnymi modułami", Category.HUD, true));
         add(new Module("glasspanel", "Panel górny", "Liquid glass panel: nazwa, FPS, serwer", Category.HUD, true));
         add(new Module("cps", "CPS", "Kliknięcia na sekundę", Category.HUD, true));
         add(new Module("ping", "Ping", "Opóźnienie do serwera", Category.HUD, true));

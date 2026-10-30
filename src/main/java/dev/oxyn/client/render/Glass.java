@@ -20,13 +20,13 @@ public final class Glass {
         if (h - 2 * r > 0) c.fill(x, y + r, x + w, y + h - r, color);
     }
 
-    /** Panel szkła: cień, ciemna baza, jasna poświata od góry, obwódka. */
+    /** Panel szkła: cień, mleczno-niebieska baza, jasna poświata od góry, cienka jasna obwódka. */
     public static void panel(DrawContext c, int x, int y, int w, int h, int r) {
-        roundRect(c, x - 1, y + 1, w + 2, h + 2, r + 1, 0x30000000);
-        roundRect(c, x - 1, y - 1, w + 2, h + 2, r + 1, 0x70BFE3FF);
-        roundRect(c, x, y, w, h, r, 0xB00A1226);
-        roundRect(c, x + 2, y + 1, w - 4, Math.max(2, h / 2 - 1), Math.max(1, r - 2), 0x26FFFFFF);
-        c.fill(x + r, y + 1, x + w - r, y + 2, 0x55FFFFFF);
+        roundRect(c, x - 1, y + 1, w + 2, h + 2, r + 1, 0x28000000);
+        roundRect(c, x - 1, y - 1, w + 2, h + 2, r + 1, 0x88DCEBFF);
+        roundRect(c, x, y, w, h, r, 0x9A2F4573);
+        roundRect(c, x + 1, y + 1, w - 2, Math.max(2, h / 2), Math.max(1, r - 1), 0x2EFFFFFF);
+        c.fill(x + r, y + 1, x + w - r, y + 2, 0x66FFFFFF);
     }
 
     /** Wersja z akcentem (np. aktywny przycisk). */
