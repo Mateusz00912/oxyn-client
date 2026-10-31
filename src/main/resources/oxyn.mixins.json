@@ -4,7 +4,10 @@
   "package": "dev.oxyn.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "BackgroundRendererMixin"
+    "BackgroundRendererMixin",
+    "DrawContextMixin",
+    "HandledScreenAccessor",
+    "HeldItemRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -123,4 +123,10 @@ public final class Glass {
         roundRectV(c, x, y, w, h, rr, (accent & 0xFFFFFF) | 0x50000000, (accent & 0xFFFFFF) | 0x20000000);
         outline(c, x, y, w, h, rr, accent | 0xFF000000, (accent & 0xFFFFFF) | 0x90000000);
     }
+
+    /** Szklany slot ekwipunku. */
+    public static void cell(DrawContext c, int x, int y, int w, int h) {
+        roundRectV(c, x, y, w, h, 3, 0x40000000, 0x24000000);
+        outline(c, x, y, w, h, 3, argb(0x66, 0xFFFFFF), argb(0x22, 0xFFFFFF));
+    }
 }

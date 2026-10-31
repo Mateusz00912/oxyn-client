@@ -2,6 +2,7 @@ package dev.oxyn.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.oxyn.client.feature.KillFx;
+import dev.oxyn.client.feature.LyricsFx;
 import dev.oxyn.client.feature.Targeting;
 import dev.oxyn.client.module.Module;
 import dev.oxyn.client.module.ModuleManager;
@@ -215,6 +216,7 @@ public final class WorldFx {
     public static void renderTags(WorldRenderContext ctx) {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null || mc.world == null || ctx.matrixStack() == null || ctx.consumers() == null) return;
+        renderLyrics(mc, ctx);
         boolean hp = ModuleManager.on("hptags");
         boolean own = ModuleManager.on("ownnametag");
         if (!hp && !own) return;
@@ -247,6 +249,53 @@ public final class WorldFx {
             Text label = Text.literal("HP " + String.format("%.1f", cur)).styled(s -> s.withColor(rgb))
                     .append(Text.literal(" / " + (int) max).styled(s -> s.withColor(0xAAAAAA)));
             tag(mc, ctx, label, x - cam.x, y - cam.y + pl.getHeight() + 0.85, z - cam.z, scale);
+        }
+    }
+
+    /** Linie tekstu piosenki unoszące się w świecie. */
+    private static void renderLyrics(MinecraftClient mc, WorldRenderContext ctx) {
+        if (LyricsFx.LINES.isEmpty() || !ModuleManager.on("spotify")) return;
+        Vec3d cam = ctx.camera().getPos();
+        double size = ModuleManager.get("spotify").num("Rozmiar tekstu");
+        long now = System.currentTimeMillis();
+        TextRenderer tr = mc.textRenderer;
+        MatrixStack ms = ctx.matrixStack();
+        VertexConsumerProvider vcp = ctx.consumers();
+        int acc = Glass.accent() & 0xFFFFFF;
+
+        for (LyricsFx.Line l : LyricsFx.LINES) {
+            double age = (now - l.start) / 1000.0;
+            double fade = Math.min(1.0, age / 0.25);                         // pojawianie
+            if (now > l.end) fade = Math.min(fade, Math.max(0.0, 1.0 - (now - l.end) / 700.0)); // znikanie po końcu zdania
+            int a = (int) (255 * fade);
+            if (a < 8) continue;
+
+            // podział długiej linii na dwie
+            String[] rows = new String[]{l.text};
+            if (tr.getWidth(l.text) > 210) {
+                int mid = l.text.length() / 2, best = -1;
+                for (int i = 0; i < l.text.length(); i++) {
+                    if (l.text.charAt(i) == ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+                }
+                if (best > 0) rows = new String[]{l.text.substring(0, best), l.text.substring(best + 1)};
+            }
+
+            double rise = Math.min(1.2, age * 0.1) + (now > l.end ? (now - l.end) / 1000.0 * 0.4 : 0);
+            ms.push();
+            ms.translate(l.pos.x - cam.x, l.pos.y - cam.y + rise, l.pos.z - cam.z);
+            ms.multiply(ctx.camera().getRotation());
+            ms.scale((float) -size, (float) -size, (float) size);
+            for (int i = 0; i < rows.length; i++) {
+                float w = tr.getWidth(rows[i]);
+                float y = (i - (rows.length - 1) / 2f) * 11f;
+                Matrix4f m = ms.peek().getPositionMatrix();
+                // cień w kolorze akcentu + biały tekst
+                tr.draw(rows[i], -w / 2f + 0.9f, y + 0.9f, (Math.max(8, a * 6 / 10) << 24) | acc, false, m, vcp,
+                        TextRenderer.TextLayerType.SEE_THROUGH, 0, 0xF000F0);
+                tr.draw(rows[i], -w / 2f, y, (a << 24) | 0xFFFFFF, false, m, vcp,
+                        TextRenderer.TextLayerType.SEE_THROUGH, 0, 0xF000F0);
+            }
+            ms.pop();
         }
     }
 

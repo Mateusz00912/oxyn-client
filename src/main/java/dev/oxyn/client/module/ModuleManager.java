@@ -87,7 +87,9 @@ public final class ModuleManager {
         add(new Module("armor", "Pancerz", "Pancerz i wytrzymałość", Category.HUD, true));
         add(new Module("effects", "Efekty mikstur", "Aktywne efekty", Category.HUD, true));
         add(new Module("spotify", "Spotify", "Utwór + tekst (liquid glass)", Category.HUD, true)
-                .toggle("Tekst piosenki", true)
+                .toggle("Tekst w powietrzu", true)
+                .toggle("Tekst na HUD", false)
+                .slider("Rozmiar tekstu", 0.015, 0.08, 0.03)
                 .slider("Przesunięcie tekstu (s)", -5, 5, 0));
         add(new Module("targethud", "Target HUD", "HP i ekwipunek gracza na celowniku", Category.HUD, true)
                 .slider("Zasięg (bloki)", 8, 64, 40));
@@ -110,6 +112,14 @@ public final class ModuleManager {
                 .toggle("Baner", true)
                 .toggle("Dźwięk", true)
                 .slider("Czas banera (s)", 1, 5, 2.5));
+        add(new Module("glassinv", "Szklany ekwipunek", "Ekwipunek i skrzynie jako rozmazane szkło", Category.VISUAL, true));
+        add(new Module("butterfly", "Nóż motylkowy", "Zamiast miecza w ręku animowany balisong", Category.VISUAL, true)
+                .slider("Skala", 0.5, 2.0, 1.0)
+                .slider("Przesunięcie X", -0.6, 0.6, 0)
+                .slider("Przesunięcie Y", -0.6, 0.6, 0)
+                .slider("Przesunięcie Z", -0.6, 0.6, 0)
+                .slider("Obrót", -90, 90, 0)
+                .slider("Szybkość animacji", 0.3, 3.0, 1.0));
         add(new Module("ownnametag", "Nick OXYN", "Napis OXYN (nick) nad Twoją postacią", Category.VISUAL, true));
         add(new Module("fog", "Mgła", "Własny kolor i gęstość mgły", Category.VISUAL, false)
                 .slider("Gęstość", 0.1, 1.0, 0.55)

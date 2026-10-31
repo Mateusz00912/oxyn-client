@@ -9,6 +9,7 @@ import dev.oxyn.client.module.ModuleManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.render.RenderTickCounter;
@@ -16,6 +17,9 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.time.LocalTime;
@@ -148,7 +152,7 @@ public final class OxynHud {
 
         // Prawa strona
         if (ModuleManager.on("effects")) el(ctx, "effects", sw - 6, 6, 1f, hs, (ax, ay) -> effects(ctx, p, tr, ax, ay));
-        el(ctx, "spotify", sw - 6, sh - 56, 1f, hs, (ax, ay) -> spotifyCard(ctx, tr, ax, ay));
+        el(ctx, "spotify", sw - 6, sh - 72, 1f, hs, (ax, ay) -> spotifyCard(ctx, tr, ax, ay));
 
         if (ModuleManager.on("targethud")) {
             PlayerEntity t = Targeting.target != null ? Targeting.target : (editing ? p : null);
@@ -189,7 +193,7 @@ public final class OxynHud {
     private static int[] lyricPill(DrawContext ctx, TextRenderer tr, int ax, int y) {
         String cur = null;
         Module m = ModuleManager.get("spotify");
-        if (m.enabled && m.flag("Tekst piosenki") && Spotify.running && Spotify.hasLyrics()) {
+        if (m.enabled && m.flag("Tekst na HUD") && Spotify.running && Spotify.hasLyrics()) {
             long lp = Spotify.positionMs() + (long) (m.num("Przesunięcie tekstu (s)") * 1000);
             cur = Spotify.lineAt(lp, 0);
         }
@@ -301,23 +305,47 @@ public final class OxynHud {
         long pos = live ? Spotify.positionMs() : 83000;
         double dur = live ? Spotify.durationSec : 190;
         boolean playing = !live || Spotify.playing;
-        int w = 176, h = 50;
+        int w = 216, h = 66;
         int x = ax - w;
-        Glass.panel(ctx, x, y, w, h, 9);
-        Glass.roundRect(ctx, x + 6, y + 7, 34, 34, 7, 0xFF1ED760);
-        Glass.roundRect(ctx, x + 8, y + 9, 30, 15, 6, 0x30FFFFFF);
-        ctx.drawText(tr, playing ? ">" : "||", x + 21 - (playing ? 0 : 2), y + 20, 0xFF04120A, false);
-        ctx.drawText(tr, tr.trimToWidth(title, w - 54), x + 47, y + 7, 0xFFFFFFFF, true);
-        ctx.drawText(tr, tr.trimToWidth(artist, w - 54), x + 47, y + 18, 0xFFD0E2F5, false);
-        int bx = x + 47, bw = w - 55;
-        ctx.fill(bx, y + 31, bx + bw, y + 33, 0x55FFFFFF);
+        int green = 0xFF1ED760;
+        Glass.panel(ctx, x, y, w, h, 11);
+
+        // okładka albumu (albo zielona ikonka gdy jej nie ma)
+        int cx = x + 9, cy = y + 9, cs = 48;
+        Identifier cover = live ? SpotifyArt.get() : null;
+        if (cover != null) {
+            ctx.drawTexture(cover, cx, cy, cs, cs, 0f, 0f, 128, 128, 128, 128);
+        } else {
+            Glass.roundRectV(ctx, cx, cy, cs, cs, 8, 0xFF2BE57A, 0xFF138A44);
+            ctx.drawText(tr, "♪", cx + cs / 2 - 3, cy + cs / 2 - 4, 0xFF04120A, false);
+        }
+        Glass.outline(ctx, cx - 1, cy - 1, cs + 2, cs + 2, 3, 0xAAFFFFFF, 0x44FFFFFF);
+
+        int tx = x + 66;
+        int maxW = w - 66 - 34;
+        ctx.drawText(tr, Text.literal(tr.trimToWidth(title, maxW)).formatted(Formatting.BOLD), tx, y + 10, 0xFFFFFFFF, true);
+        ctx.drawText(tr, tr.trimToWidth(artist, maxW), tx, y + 22, 0xFFC9DCF0, false);
+
+        // animowany equalizer
+        double t = System.currentTimeMillis() / 1000.0;
+        for (int i = 0; i < 4; i++) {
+            int bh = playing ? 3 + (int) ((Math.sin(t * (5 + i * 1.7) + i * 2) * 0.5 + 0.5) * 11) : 3;
+            ctx.fill(x + w - 26 + i * 4, y + 22 - bh, x + w - 24 + i * 4, y + 22, green);
+        }
+
+        // pasek postępu z gałką
+        int bx = tx, bw = w - 66 - 10, by = y + 41;
+        ctx.fill(bx, by, bx + bw, by + 3, 0x55FFFFFF);
         if (dur > 1) {
             double f = Math.min(1.0, pos / (dur * 1000.0));
-            ctx.fill(bx, y + 31, bx + (int) (bw * f), y + 33, 0xFF1ED760);
+            int fx = bx + (int) (bw * f);
+            ctx.fill(bx, by, fx, by + 3, green);
+            Glass.roundRect(ctx, fx - 3, by - 2, 7, 7, 3, 0xFFFFFFFF);
             String total = mmss((long) (dur * 1000));
-            ctx.drawText(tr, total, bx + bw - tr.getWidth(total), y + 37, 0xFFD0E2F5, false);
+            ctx.drawText(tr, total, bx + bw - tr.getWidth(total), by + 8, 0xFFC9DCF0, false);
         }
-        ctx.drawText(tr, mmss(pos), bx, y + 37, 0xFFD0E2F5, false);
+        ctx.drawText(tr, mmss(pos), bx, by + 8, 0xFFC9DCF0, false);
+        if (!playing) ctx.drawText(tr, "||", bx + bw / 2 - 3, by + 8, 0xFFFFFFFF, false);
         return new int[]{w, h};
     }
 
@@ -366,26 +394,105 @@ public final class OxynHud {
         return new int[]{84, 22};
     }
 
+    private static final String[] HEART = {
+            ".XX...XX.",
+            "XXXX.XXXX",
+            "XXXXXXXXX",
+            "XXXXXXXXX",
+            ".XXXXXXX.",
+            "..XXXXX..",
+            "...XXX...",
+            "....X...."};
+
+    /** Serduszko 9x8: fill 0 = puste, 1 = połówka, 2 = pełne. */
+    private static void heart(DrawContext c, int x, int y, int fill, boolean gold) {
+        int main = gold ? 0xFFFFC94A : 0xFFFF3B4D;
+        int hi = gold ? 0xFFFFF0B0 : 0xFFFFA3AD;
+        for (int r = 0; r < HEART.length; r++) {
+            for (int col = 0; col < 9; col++) {
+                if (HEART[r].charAt(col) != 'X') continue;
+                boolean filled = fill == 2 || (fill == 1 && col <= 4);
+                int color = filled ? ((r <= 1 && col <= 2) ? hi : main) : 0x88150A12;
+                c.fill(x + col, y + r, x + col + 1, y + r + 1, color);
+            }
+        }
+    }
+
     private static int[] targetHud(DrawContext ctx, TextRenderer tr, int ax, int y, PlayerEntity t, ClientPlayerEntity self) {
-        int w = 150, h = 66;
-        int x = ax - w / 2;
-        Glass.panelAccent(ctx, x, y, w, h, 9, 0xFFFF5A7A);
-        ctx.drawText(tr, tr.trimToWidth(t.getName().getString(), w - 16), x + 8, y + 6, 0xFFFFFFFF, true);
+        int w = 208;
         float hp = t.getHealth();
         float max = Math.max(1f, t.getMaxHealth());
-        float f = Math.max(0f, Math.min(1f, hp / max));
-        ctx.fill(x + 8, y + 19, x + w - 8, y + 25, 0x66000000);
-        ctx.fill(x + 8, y + 19, x + 8 + (int) ((w - 16) * f), y + 25, Glass.hsb(f * 0.33f, 0.85f, 1f, 255));
-        String info = String.format("%.1f / %.0f HP", hp + t.getAbsorptionAmount(), max)
-                + String.format("   %.1fm", (double) self.distanceTo(t));
-        ctx.drawText(tr, info, x + 8, y + 28, 0xFFE0EEFF, false);
+        float abs = t.getAbsorptionAmount();
+        int hearts = Math.min(20, (int) Math.ceil(max / 2f));
+        int goldHearts = Math.min(10, (int) Math.ceil(abs / 2f));
+        int total = hearts + goldHearts;
+        int rows = Math.max(1, (total + 9) / 10);
+        int headerH = Math.max(40, 18 + rows * 12);
+        int h = 8 + headerH + 6 + 28 + 8;
+        int x = ax - w / 2;
+
+        Glass.roundRect(ctx, x - 2, y - 2, w + 4, h + 4, 12, 0x66000000); // ciemne tło dla czytelności
+        Glass.panelAccent(ctx, x, y, w, h, 10, 0xFFFF5A7A);
+
+        // głowa gracza ze skina
+        int hx = x + 8, hy = y + 8;
+        Identifier skin = null;
+        if (t instanceof AbstractClientPlayerEntity ap) skin = ap.getSkinTextures().texture();
+        Glass.roundRect(ctx, hx - 1, hy - 1, 42, 42, 4, 0xFF0B0F1A);
+        if (skin != null) {
+            ctx.drawTexture(skin, hx, hy, 40, 40, 8f, 8f, 8, 8, 64, 64);
+            ctx.drawTexture(skin, hx, hy, 40, 40, 40f, 8f, 8, 8, 64, 64);
+        }
+        Glass.outline(ctx, hx - 1, hy - 1, 42, 42, 4, 0xCCFFFFFF, 0x55FFFFFF);
+
+        // nick, dystans i liczba HP
+        int tx = x + 56;
+        ctx.drawText(tr, Text.literal(tr.trimToWidth(t.getName().getString(), w - 56 - 50)).formatted(Formatting.BOLD),
+                tx, y + 9, 0xFFFFFFFF, true);
+        String dist = String.format("%.1fm", (double) self.distanceTo(t));
+        ctx.drawText(tr, dist, x + w - 8 - tr.getWidth(dist), y + 9, 0xFFFFC9D2, true);
+
+        // serduszka (2 HP = 1 serce), złote = absorpcja
+        int hxs = tx;
+        int hyr = y + 22;
+        for (int i = 0; i < total; i++) {
+            boolean gold = i >= hearts;
+            int fill;
+            if (gold) {
+                float g = abs - (i - hearts) * 2f;
+                fill = g >= 2f ? 2 : g >= 1f ? 1 : 0;
+            } else {
+                float g = hp - i * 2f;
+                fill = g >= 2f ? 2 : g >= 1f ? 1 : 0;
+            }
+            heart(ctx, hxs + (i % 10) * 12, hyr + (i / 10) * 12, fill, gold);
+        }
+        String hpText = String.format("%.1f / %.0f", hp, max) + (abs > 0 ? String.format(" +%.1f", abs) : "");
+        ctx.drawText(tr, hpText, tx, hyr + rows * 12 + 1, 0xFFFFFFFF, false);
+
+        // ekwipunek: 6 dużych slotów
         EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET,
                 EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND};
+        int sy = y + 8 + headerH + 6;
         for (int i = 0; i < slots.length; i++) {
-            ItemStack s = t.getEquippedStack(slots[i]);
-            int ix = x + 8 + i * 22;
-            Glass.roundRect(ctx, ix - 1, y + 42, 20, 20, 4, 0x30FFFFFF);
-            if (!s.isEmpty()) ctx.drawItemInSlot(tr, s, ix + 1, y + 44);
+            ItemStack st = t.getEquippedStack(slots[i]);
+            int sx = x + 8 + i * 32;
+            Glass.roundRectV(ctx, sx, sy, 28, 28, 5, 0x88000000, 0x66000000);
+            Glass.outline(ctx, sx, sy, 28, 28, 5, 0x88FFFFFF, 0x33FFFFFF);
+            if (st.isEmpty()) continue;
+            ctx.getMatrices().push();
+            ctx.getMatrices().translate(sx + 3f, sy + 3f, 0f);
+            ctx.getMatrices().scale(1.3f, 1.3f, 1f);
+            ctx.drawItem(st, 0, 0);
+            ctx.getMatrices().pop();
+            if (st.isDamageable()) {
+                float f = (st.getMaxDamage() - st.getDamage()) / (float) st.getMaxDamage();
+                ctx.fill(sx + 3, sy + 25, sx + 25, sy + 27, 0xAA000000);
+                ctx.fill(sx + 3, sy + 25, sx + 3 + (int) (22 * f), sy + 27, Glass.hsb(f * 0.33f, 0.85f, 1f, 255));
+            } else if (st.getCount() > 1) {
+                String cnt = String.valueOf(st.getCount());
+                ctx.drawText(tr, cnt, sx + 26 - tr.getWidth(cnt), sy + 18, 0xFFFFFFFF, true);
+            }
         }
         return new int[]{w, h};
     }

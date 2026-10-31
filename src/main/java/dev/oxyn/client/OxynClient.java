@@ -1,6 +1,7 @@
 package dev.oxyn.client;
 
 import dev.oxyn.client.feature.KillFx;
+import dev.oxyn.client.feature.LyricsFx;
 import dev.oxyn.client.feature.Spotify;
 import dev.oxyn.client.feature.Targeting;
 import dev.oxyn.client.gui.OxynMenuScreen;
@@ -63,6 +64,7 @@ public class OxynClient implements ClientModInitializer {
 
         Targeting.tick(mc);
         KillFx.tick(mc);
+        LyricsFx.tick(mc);
         WorldFx.tick(mc);
 
         ClientPlayerEntity p = mc.player;
