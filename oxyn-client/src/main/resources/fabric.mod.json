@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "oxyn",
+  "version": "${version}",
+  "name": "Oxyn Client",
+  "description": "More than just a client. Liquid glass HUD, efekty wizualne, Spotify z tekstem, menu pod Right Shift.",
+  "authors": ["Oxyn"],
+  "license": "MIT",
+  "icon": "assets/oxyn/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.oxyn.client.OxynClient"]
+  },
+  "mixins": ["oxyn.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
